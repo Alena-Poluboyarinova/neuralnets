@@ -1,6 +1,8 @@
 """Seminar 3. Multilayer neural net"""
 import numpy as np
-
+import datetime
+import os.path
+from test_utils import get_preprocessed_data, visualize_weights, visualize_loss
 
 class Param:
     """
@@ -225,8 +227,54 @@ class TwoLayerNet:
 
             if it % 100 == 0 and verbose:
                 print(f'iteration {it} / {num_iters}: loss {self.loss:.3f} ')
+        
+        
 
         return loss_history
+
+def train():
+    reg = 0
+    N_samples = 32
+    (x_train, y_train), _ = get_preprocessed_data(include_bias=False)
+    dev_idx = np.random.choice(len(x_train), N_samples)
+    X_dev, y_dev = x_train[dev_idx], y_train[dev_idx]
+    n_input, n_out, hidden_size = 3072, 10, 128
+    net = TwoLayerNet(n_input, n_out, hidden_size, reg=reg)
+
+    learning_rate = 5e-3
+    num_iters = 1000
+    batch_size = N_samples
+
+    t0 = datetime.datetime.now()
+    loss_history = net.fit(X_dev, y_dev,
+                           learning_rate=learning_rate, num_iters=num_iters,
+                           batch_size=batch_size, verbose=True)
+    t1 = datetime.datetime.now()
+    dt = t1 - t0
+
+    report = f"""# Training Softmax classifier  
+datetime: {t1.isoformat(' ', 'seconds')}  
+Well done in: {dt.seconds} seconds  
+learning_rate = {learning_rate}  
+reg = {reg}  
+num_iters = {num_iters}  
+batch_size = {batch_size}  
+
+Final loss: {loss_history[-1]}   
+
+<img src="weights.png">  
+<br>
+<img src="loss.png">
+"""
+
+    print(report)
+    out_dir = 'output/seminar3'
+
+    report_path = os.path.join(out_dir, 'report.md')
+    with open(report_path, 'w') as f:
+        f.write(report)
+    visualize_weights(net, out_dir)
+    visualize_loss(loss_history, out_dir)
 
 
 if __name__ == '__main__':
@@ -234,4 +282,5 @@ if __name__ == '__main__':
     # Train your TwoLayer Net! 
     # Test accuracy must be > 0.33
     # Save report to output/seminar3
-    model = TwoLayerNet()
+    
+    train()
