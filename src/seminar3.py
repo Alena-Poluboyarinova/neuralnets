@@ -273,7 +273,6 @@ Final loss: {loss_history[-1]}
     report_path = os.path.join(out_dir, 'report.md')
     with open(report_path, 'w') as f:
         f.write(report)
-    visualize_weights(net, out_dir)
     visualize_loss(loss_history, out_dir)
 
 
