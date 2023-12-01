@@ -19,3 +19,6 @@ git status - посмотреть состояние файлов
 git push - отправить все сделанные коммиты
 
 После git push идем на гитхаб и тыкаем "Compare and pull request" => "Create pull request" => "Squash and merge"
+
+---
+python -m unittest discover -v -s src -p test2.py чтобы запустить файл
