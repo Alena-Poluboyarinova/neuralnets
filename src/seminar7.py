@@ -13,7 +13,7 @@ import dotenv
 import pandas as pd
 import tensorflow as tf
 
-MAX_WORDS = 1000
+MAX_WORDS = 4000
 MAX_SEQ_LEN = 150
 DATA_URL_TRAIN = 'https://storage.yandexcloud.net/fa-bucket/spam.csv'
 DATA_URL_TEST = 'https://storage.yandexcloud.net/fa-bucket/spam_test.csv'
@@ -22,7 +22,7 @@ PATH_TO_TEST_DATA = 'data/raw/spam_test.csv'
 PATH_TO_MODEL = 'models/model_7'
 BUCKET_NAME = 'neuralnets2023'
 # todo fix your git user name
-YOUR_GIT_USER = 'labintsev'
+YOUR_GIT_USER = 'Alena-Poluboyarinova'
 
 
 def download_data():
@@ -43,9 +43,12 @@ def make_model():
     """
     inputs = tf.keras.layers.Input(name='inputs', shape=[MAX_SEQ_LEN])
     x = tf.keras.layers.Embedding(MAX_WORDS, output_dim=4, input_length=MAX_SEQ_LEN)(inputs)
-    x = tf.keras.layers.SimpleRNN(units=4)(x)
+    x = tf.keras.layers.LSTM(units=16, return_sequences=True)(x)
+    x = tf.keras.layers.Dropout(0.2)(x)
+    x = tf.keras.layers.LSTM(units=8)(x)
+    x = tf.keras.layers.Dropout(0.2)(x)
     x = tf.keras.layers.Dense(1, name='out_layer')(x)
-    x = tf.keras.layers.Activation('sigmoid')(x)
+    x = tf.keras.layers.Activation('tanh')(x)
     recurrent_model = tf.keras.Model(inputs=inputs, outputs=x)
     return recurrent_model
 
@@ -59,15 +62,38 @@ def load_data(csv_path='data/raw/spam.csv') -> tuple:
 
 def train():
     X_train, Y_train = load_data()
+    X_test, _ = load_data('data/raw/spam_test.csv')
     tok = tf.keras.preprocessing.text.Tokenizer(num_words=MAX_WORDS)
-    tok.fit_on_texts(X_train)
+    tok.fit_on_texts(X_test)
     sequences = tok.texts_to_sequences(X_train)
     sequences_matrix = tf.keras.preprocessing.sequence.pad_sequences(sequences, maxlen=MAX_SEQ_LEN)
 
     model = make_model()
     model.summary()
-    model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['accuracy', tf.keras.metrics.Precision()])
-    model.fit(sequences_matrix, Y_train, batch_size=128, epochs=10, validation_split=0.2)
+    class_weight = {0: 0.5, 1: 3}
+    model.compile(
+        loss=tf.keras.losses.BinaryCrossentropy(),
+        optimizer=tf.keras.optimizers.AdamW(3e-4),
+        metrics=['accuracy', tf.keras.metrics.Precision()]
+    )
+
+    callbacks = [
+        tf.keras.callbacks.ModelCheckpoint(
+            filepath='models/model_7',
+            save_best_only=True,
+            monitor='val_loss',
+            verbose=1)
+    ]
+
+    model.fit(
+        sequences_matrix,
+        Y_train,
+        batch_size=128,
+        epochs=50,
+        validation_split=0.2,
+        class_weight=class_weight,
+        callbacks=callbacks
+    )
     model.save('models/model_7')
 
 
@@ -75,20 +101,21 @@ def validate(model_path='models/model_7') -> tuple:
     """
     Validate model on test subset
     todo fit tokenizer on train texts,
-    todo achieve >0.95 both accuracy and precision
+    todo achieve >0.95 accuracy precision recall
     """
     model = tf.keras.models.load_model(model_path)
     X_test, Y_test = load_data('data/raw/spam_test.csv')
+    X_train, _ = load_data()
 
     tok = tf.keras.preprocessing.text.Tokenizer(num_words=MAX_WORDS)
     tok.fit_on_texts(X_test)
     test_sequences = tok.texts_to_sequences(X_test)
     test_sequences_matrix = tf.keras.preprocessing.sequence.pad_sequences(test_sequences, maxlen=MAX_SEQ_LEN)
 
-    loss, accuracy, precision = model.evaluate(test_sequences_matrix, Y_test)
-    print(f'Test set\n  Loss: {loss:0.3f}  Accuracy: {accuracy:0.3f}, Precision: {precision:0.3f}')
+    loss, accuracy, precision, recall = model.evaluate(test_sequences_matrix, Y_test)
+    print(f'Test set\n  Loss: {loss:0.3f}  Accuracy: {accuracy:0.3f}, Precision: {precision:0.3f}, Recall: {recall:0.3f}')
 
-    return accuracy, precision
+    return accuracy, precision, recall
 
 
 def upload():
@@ -129,3 +156,4 @@ if __name__ == '__main__':
         validate()
     if args.upload:
         upload()
+        
