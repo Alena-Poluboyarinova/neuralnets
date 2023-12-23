@@ -1,10 +1,10 @@
 """Seminar 6. Image Binary Classification with Keras. ML ops."""
 import argparse
+import glob
 import os
 import zipfile
 import shutil
 from urllib.request import urlretrieve
-
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -12,12 +12,13 @@ import boto3
 import dotenv
 
 DATA_URL = 'https://storage.yandexcloud.net/fa-bucket/cats_dogs_train.zip'
-PATH_TO_DATA_ZIP = 'data/raw/cats_dogs_train.zip'
-PATH_TO_DATA = 'data/raw/cats_dogs_train'
-PATH_TO_MODEL = 'models/model_6'
+PATH_TO_DATA_ZIP = '../data/raw/cats_dogs_train.zip'
+PATH_TO_DATA = '../data/raw/cats_dogs_train'
+PATH_TO_MODEL = '../models/model_6'
 BUCKET_NAME = 'neuralnets2023'
 # todo fix your git user name and copy .env to project root
 YOUR_GIT_USER = 'Alena-Poluboyarinova'
+
 
 def download_data():
     """Pipeline: download and extract data"""
@@ -120,6 +121,7 @@ def make_model(input_shape, num_classes):
     x = tf.keras.layers.Activation("relu")(x)
 
     x = tf.keras.layers.GlobalAveragePooling2D()(x)
+
     if num_classes == 2:
         activation = "sigmoid"
         units = 1
@@ -127,12 +129,14 @@ def make_model(input_shape, num_classes):
         activation = "softmax"
         units = num_classes
 
+
     x = tf.keras.layers.Dropout(0.5)(x)
     outputs = tf.keras.layers.Dense(units, activation=activation)(x)
     return tf.keras.Model(inputs, outputs)
 
 
 def train():
+    print('Training model')
     """Pipeline: Build, train and save model to models/model_6"""
     # Todo: Copy some code from seminar5 and https://keras.io/examples/vision/image_classification_from_scratch/
     train_ds, val_ds = data_transform()
@@ -159,6 +163,11 @@ def train():
     print('Training model')
 
 
+def load(fb):
+    # Загрузка сохраненной модели
+    loaded_model = load_model(fb)
+    loaded_model.save(PATH_TO_MODEL)
+
 def upload():
     """Pipeline: Upload model to S3 storage"""
     print('Upload model')
@@ -183,6 +192,7 @@ def upload():
 
 
 if __name__ == '__main__':
+
     download_data()
     train()
     upload()
