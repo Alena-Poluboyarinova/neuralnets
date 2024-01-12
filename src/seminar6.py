@@ -12,9 +12,9 @@ import boto3
 import dotenv
 
 DATA_URL = 'https://storage.yandexcloud.net/fa-bucket/cats_dogs_train.zip'
-PATH_TO_DATA_ZIP = '../data/raw/cats_dogs_train.zip'
-PATH_TO_DATA = '../data/raw/cats_dogs_train'
-PATH_TO_MODEL = '../models/model_6'
+PATH_TO_DATA_ZIP = './data/raw/cats_dogs_train.zip'
+PATH_TO_DATA = './data/raw/cats_dogs_train'
+PATH_TO_MODEL = './models/model_6'
 BUCKET_NAME = 'neuralnets2023'
 # todo fix your git user name and copy .env to project root
 YOUR_GIT_USER = 'Alena-Poluboyarinova'
@@ -192,7 +192,14 @@ def upload():
 
 
 if __name__ == '__main__':
-
+    parser = argparse.ArgumentParser(
+        prog='src/seminar7.py',
+        description='Seminar 7. SMS spam Classification with Recurrent Nets.')
+    parser.add_argument('--download', action='store_true', help='Download images and extract to data/raw directory')
+    parser.add_argument('--train', action='store_true', help=f'Build, train and save model to {PATH_TO_MODEL}')
+    parser.add_argument('--validate', action='store_true', help='Validate model on test subset')
+    parser.add_argument('--upload', action='store_true', help='Upload model to S3 storage')
+    args = parser.parse_args()
     download_data()
     train()
     upload()
